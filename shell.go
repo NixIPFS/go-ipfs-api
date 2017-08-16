@@ -840,3 +840,111 @@ func (s *Shell) DiagNet(format string) ([]byte, error) {
 
 	return result.Bytes(), nil
 }
+
+// "/files/cp?arg=<source>&arg=<dest>"
+func (s *Shell) FilesCp(source string, dest string, flush bool) (error) {
+	req := s.newRequest(context.Background(), "files/cp", source, dest)
+	if flush {
+		req.Opts["flush"] = "true"
+	} else {
+		req.Opts["flush"] = "false"
+	}
+
+	resp, err := req.Send(s.httpcli)
+	if err != nil {
+		return err
+	}
+	defer resp.Close()
+
+	if resp.Error != nil {
+		return resp.Error
+	}
+	return nil
+}
+
+// "/files/flush?arg=<path>"
+func (s *Shell) FilesFlush(path string) (error) {
+	resp, err := s.newRequest(context.Background(), "files/flush", path).Send(s.httpcli)
+	if err != nil {
+		return err
+	}
+	defer resp.Close()
+
+	if resp.Error != nil {
+		return resp.Error
+	}
+	return nil
+}
+
+// "/files/mkdir?arg=<path>"
+func (s *Shell) FilesMkdir(path string, parents bool) (error) {
+	req := s.newRequest(context.Background(),"files/mkdir", path)
+	if parents {
+		req.Opts["parents"] = "true"
+	}
+
+	resp, err := req.Send(s.httpcli)
+
+	if err != nil {
+		return err
+	}
+	defer resp.Close()
+
+	if resp.Error != nil {
+		return resp.Error
+	}
+	return nil
+}
+
+type FilesStatEntry struct {
+	Hash string
+	Name string
+	Size uint64
+	CumulativeSize uint64
+	Type string
+}
+
+func (s *Shell) FilesStat(path string) (*FilesStatEntry, error) {
+	resp, err := s.newRequest(context.Background(), "files/stat", path).Send(s.httpcli)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Close()
+
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+
+	var obj FilesStatEntry
+	err = json.NewDecoder(resp.Output).Decode(&obj)
+	if err != nil {
+		return nil, err
+	}
+
+	return &obj, nil
+}
+
+type NamePublishEntry struct {
+	Value string
+	Name string
+}
+
+func (s *Shell) NamePublish(path string) (*NamePublishEntry, error) {
+	resp, err := s.newRequest(context.Background(), "name/publish", path).Send(s.httpcli)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Close()
+
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+
+	var obj NamePublishEntry
+	err = json.NewDecoder(resp.Output).Decode(&obj)
+	if err != nil {
+		return nil, err
+	}
+
+	return &obj, nil
+}
